@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+	get '/docs/index', to: 'docs#index'
+
 	namespace :api do
 	  namespace :v1 do
 	    resources :products, only: [:index, :create, :show, :update, :destroy]
@@ -9,4 +11,5 @@ Rails.application.routes.draw do
 	    # resources :microposts, only: [:index, :create, :show, :update, :destroy]
 	  end
 	end
+
 end
