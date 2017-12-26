@@ -37,8 +37,8 @@ class Api::V1::ProductsController < Api::V1::BaseController
 			filter: params[:filter])
 		@items = []
 
-		#curl -i -X POST -d "name=画框爱丽丝1&keywords=画框爱丽丝,wonder gallery&lower_p=1000&upper_p=2500&filter=山,他人,无效&alarm_p=1800" http://localhost:3000/api/v1/products.json
-		#Product.new(name=画框爱丽丝&keywords=画框爱丽丝,wonder gallery&lower_p=1000&upper_p=2500&filter=山,他人,无效&alarm_p:1800
+		#curl -i -X POST -d "name=画框爱丽丝1&keywords=画框爱丽丝,wonder gallery&lower_p=1000&upper_p=2500&filter=山,他人,无效,复刻,专拍,小樱,你别睡,半裙,围裙,op,dress,黑,粉,sax,sp,baby,SP,baby,SAX,黄&alarm_p=1800" http://localhost:3000/api/v1/products.json
+		#Product.new(name:"画框爱丽丝",keywords:"画框爱丽丝,wonder gallery",lower_p:1000,upper_p:2500,filter:"山,他人,无效",alarm_p:1800)
 
 		def start_crawl
 			keywords = @product.keywords.split(',')
@@ -50,10 +50,11 @@ class Api::V1::ProductsController < Api::V1::BaseController
 				end
 			end
 
-			# 处理record_ids中的数据变动
+			# 处理数据
 			proc_items
 		end
 
+		# 分析页面，将商品放入@items属性
 		def parse(page)
 			doc = Nokogiri::HTML(page.body, nil, 'gbk')
 			doc.encoding = "UTF-8"	
@@ -63,7 +64,7 @@ class Api::V1::ProductsController < Api::V1::BaseController
 
 			# 拆分元素，并存入新的Item实例
 			item_list.each do |item|
-				p new_item = Item.new(
+				new_item = Item.new(
 					id: item.xpath("h4/a").attribute("href").text.scan(%r|id=(\d+)|)[0][0],
 					title: item.xpath("h4/a").text,
 					desc: item.xpath("div[3]").text,
@@ -96,19 +97,15 @@ class Api::V1::ProductsController < Api::V1::BaseController
 			return true
 		end
 
-		# 处理record_ids中的数据变动
+		# 保存record_ids和items数据
 		def proc_items
-			# 抓到新数据时，处理数据
 			if !@items.empty?
 				record_ids_new = []
 
 				@items.each do |item|
 					record_ids_new<<item.id
-
-					# 警报商品邮件发送
-					# if item.price <= @alarm_p
-					# 	NotifMail.send(@name, "alarm", item)
-					# end
+					item.product_id = @product.id
+					item.save
 				end
 
 				@product.record_ids = record_ids_new.join(',')
@@ -118,12 +115,4 @@ class Api::V1::ProductsController < Api::V1::BaseController
 
 		start_crawl
 	end
-end
-
-class Item
-	def initialize(id:"", title:"", price:0, url:"", desc:"", pic_url:"")
-		@id, @title, @price, @url, @desc, @pic_url = id, title, price, url, desc, pic_url
-	end
-
-	attr_accessor :id, :title, :price, :url, :desc, :pic_url
 end
